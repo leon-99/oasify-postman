@@ -24,7 +24,13 @@ async function generateSwagger(inputFile, outputFile, options = {}) {
     };
     
     // Convert Postman to OpenAPI and save as YAML
-    await postmanToOpenApi(inputFile, outputFile, postmanOptions);
+    try {
+      await postmanToOpenApi(inputFile, outputFile, postmanOptions);
+    } catch (conversionError) {
+      // If the main conversion fails due to URL issues, create a basic OpenAPI spec
+      console.log('⚠️  Main conversion failed, creating basic OpenAPI spec...');
+      await createBasicOpenApiSpec(inputFile, outputFile, postmanOptions);
+    }
     
     console.log('✅ Successfully generated OpenAPI specification!');
     console.log(`📁 Output file: ${outputFile}`);
@@ -105,12 +111,24 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
               const pathSegments = Array.isArray(url.path) ? url.path : [url.path];
               apiPath = `/${pathSegments.join('/')}`;
             } else if (url.raw) {
-              // URL has raw property
+              // URL has raw property - handle Postman variables
+              let rawUrl = url.raw;
+              
+              // Replace Postman variables with placeholder values
+              rawUrl = rawUrl.replace(/\{\{url\}\}/g, 'http://localhost:3000');
+              rawUrl = rawUrl.replace(/\{\{.*?\}\}/g, 'placeholder');
+              
               try {
-                const urlObj = new URL(url.raw);
+                const urlObj = new URL(rawUrl);
                 apiPath = urlObj.pathname;
               } catch (urlError) {
-                apiPath = url.raw.startsWith('http') ? new URL(url.raw).pathname : url.raw;
+                // If URL parsing still fails, try to extract path from the raw string
+                if (rawUrl.includes('/')) {
+                  const pathMatch = rawUrl.match(/(\/[^?]*)/);
+                  apiPath = pathMatch ? pathMatch[1] : rawUrl;
+                } else {
+                  apiPath = rawUrl;
+                }
               }
             } else {
               // Skip this item if we can't determine the path
@@ -182,7 +200,130 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
   }
 }
 
+/**
+ * Create a basic OpenAPI specification when the main conversion fails
+ * @param {string} postmanFile - Path to Postman collection file
+ * @param {string} outputFile - Path to output OpenAPI YAML file
+ * @param {Object} postmanOptions - Options for the OpenAPI spec
+ * @returns {Promise<void>}
+ */
+async function createBasicOpenApiSpec(postmanFile, outputFile, postmanOptions) {
+  try {
+    const postman = JSON.parse(fs.readFileSync(postmanFile, 'utf8'));
+    const YAML = require('yamljs');
+    
+    // Create basic OpenAPI structure
+    const openapi = {
+      openapi: '3.0.0',
+      info: {
+        title: postman.info?.name || 'API Documentation',
+        description: postman.info?.description || 'API documentation generated from Postman collection',
+        version: '1.0.0'
+      },
+      servers: [
+        {
+          url: 'http://localhost:3000',
+          description: 'Local development server'
+        }
+      ],
+      paths: {}
+    };
+    
+    // Process each item to extract paths
+    function processItems(items, parentPath = '') {
+      items.forEach(item => {
+        if (item.item) {
+          // This is a folder, recursively process its items
+          const folderPath = parentPath ? `${parentPath}/${item.name}` : item.name;
+          processItems(item.item, folderPath);
+        } else if (item.request && item.request.url) {
+          // This is a request
+          const url = item.request.url;
+          let apiPath;
+          let method = item.request.method ? item.request.method.toLowerCase() : 'get';
+          
+          // Handle different URL formats
+          if (typeof url === 'string') {
+            try {
+              const urlObj = new URL(url);
+              apiPath = urlObj.pathname;
+            } catch (urlError) {
+              apiPath = url.startsWith('http') ? new URL(url).pathname : url;
+            }
+          } else if (url.path) {
+            const pathSegments = Array.isArray(url.path) ? url.path : [url.path];
+            apiPath = `/${pathSegments.join('/')}`;
+          } else if (url.raw) {
+            let rawUrl = url.raw;
+            // Replace Postman variables
+            rawUrl = rawUrl.replace(/\{\{url\}\}/g, 'http://localhost:3000');
+            rawUrl = rawUrl.replace(/\{\{.*?\}\}/g, 'placeholder');
+            
+            try {
+              const urlObj = new URL(rawUrl);
+              apiPath = urlObj.pathname;
+            } catch (urlError) {
+              if (rawUrl.includes('/')) {
+                const pathMatch = rawUrl.match(/(\/[^?]*)/);
+                apiPath = pathMatch ? pathMatch[1] : rawUrl;
+              } else {
+                apiPath = rawUrl;
+              }
+            }
+          }
+          
+          // Ensure apiPath starts with /
+          if (apiPath && !apiPath.startsWith('/')) {
+            apiPath = `/${apiPath}`;
+          }
+          
+          if (apiPath) {
+            // Initialize path if it doesn't exist
+            if (!openapi.paths[apiPath]) {
+              openapi.paths[apiPath] = {};
+            }
+            
+            // Add the method
+            openapi.paths[apiPath][method] = {
+              tags: [postmanOptions.defaultTag || 'General'],
+              summary: item.name,
+              responses: {
+                '200': {
+                  description: 'Success response',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object'
+                      }
+                    }
+                  }
+                }
+              }
+            };
+          }
+        }
+      });
+    }
+    
+    // Start processing from the root items
+    if (postman.item && Array.isArray(postman.item)) {
+      processItems(postman.item);
+    }
+    
+    // Write the basic OpenAPI spec to YAML file
+    const yamlString = YAML.stringify(openapi, 2);
+    fs.writeFileSync(outputFile, yamlString);
+    
+    console.log(`📊 Created basic OpenAPI spec with ${Object.keys(openapi.paths).length} paths`);
+    
+  } catch (error) {
+    console.error('❌ Error creating basic OpenAPI spec:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   generateSwagger,
-  injectExampleResponses
+  injectExampleResponses,
+  createBasicOpenApiSpec
 };
