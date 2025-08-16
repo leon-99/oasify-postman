@@ -86,10 +86,42 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
           const example = item.response[0]; // First saved example
           const url = item.request.url;
           
-          if (url && url.path) {
-            const pathSegments = Array.isArray(url.path) ? url.path : [url.path];
-            const apiPath = `/${pathSegments.join('/')}`;
-            const method = item.request.method.toLowerCase();
+          if (url) {
+            let apiPath;
+            let method = item.request.method ? item.request.method.toLowerCase() : 'get';
+            
+            // Handle different URL formats in Postman collections
+            if (typeof url === 'string') {
+              // URL is a simple string
+              try {
+                const urlObj = new URL(url);
+                apiPath = urlObj.pathname;
+              } catch (urlError) {
+                // If URL parsing fails, try to extract path from the string
+                apiPath = url.startsWith('http') ? new URL(url).pathname : url;
+              }
+            } else if (url.path) {
+              // URL has path property (array or string)
+              const pathSegments = Array.isArray(url.path) ? url.path : [url.path];
+              apiPath = `/${pathSegments.join('/')}`;
+            } else if (url.raw) {
+              // URL has raw property
+              try {
+                const urlObj = new URL(url.raw);
+                apiPath = urlObj.pathname;
+              } catch (urlError) {
+                apiPath = url.raw.startsWith('http') ? new URL(url.raw).pathname : url.raw;
+              }
+            } else {
+              // Skip this item if we can't determine the path
+              console.log(`  ⚠️  Could not determine path for ${item.name}`);
+              return;
+            }
+            
+            // Ensure apiPath starts with /
+            if (!apiPath.startsWith('/')) {
+              apiPath = `/${apiPath}`;
+            }
             
             // Check if this path and method exist in the OpenAPI spec
             if (openapi.paths[apiPath] && openapi.paths[apiPath][method]) {
