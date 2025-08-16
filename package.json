@@ -1,0 +1,39 @@
+{
+  "name": "oasify-postman",
+  "version": "1.0.1",
+  "description": "Convert Postman collections to OpenAPI specifications with example responses",
+  "main": "index.js",
+  "bin": {
+    "oasify-postman": "cli.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "postman",
+    "openapi",
+    "swagger",
+    "api",
+    "documentation",
+    "converter",
+    "yaml"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "postman-to-openapi": "^2.7.0",
+    "yamljs": "^0.3.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/oasify-postman.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/oasify-postman/issues"
+  },
+  "homepage": "https://github.com/yourusername/oasify-postman#readme"
+}
