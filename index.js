@@ -277,30 +277,193 @@ async function createBasicOpenApiSpec(postmanFile, outputFile, postmanOptions) {
             apiPath = `/${apiPath}`;
           }
           
-          if (apiPath) {
-            // Initialize path if it doesn't exist
-            if (!openapi.paths[apiPath]) {
-              openapi.paths[apiPath] = {};
-            }
-            
-            // Add the method
-            openapi.paths[apiPath][method] = {
-              tags: [postmanOptions.defaultTag || 'General'],
-              summary: item.name,
-              responses: {
-                '200': {
-                  description: 'Success response',
-                  content: {
-                    'application/json': {
+                     if (apiPath) {
+             // Initialize path if it doesn't exist
+             if (!openapi.paths[apiPath]) {
+               openapi.paths[apiPath] = {};
+             }
+             
+             // Build the method specification
+             const methodSpec = {
+               tags: [postmanOptions.defaultTag || 'General'],
+               summary: item.name,
+               responses: {
+                 '200': {
+                   description: 'Success response',
+                   content: {
+                     'application/json': {
+                       schema: {
+                         type: 'object'
+                       }
+                     }
+                   }
+                 }
+               }
+             };
+             
+                           // Add query parameters
+              if (url.query && Array.isArray(url.query)) {
+                methodSpec.parameters = methodSpec.parameters || [];
+                url.query.forEach(queryParam => {
+                  if (queryParam.key && !queryParam.disabled) {
+                    methodSpec.parameters.push({
+                      name: queryParam.key,
+                      in: 'query',
+                      required: false,
                       schema: {
-                        type: 'object'
-                      }
+                        type: 'string'
+                      },
+                      example: queryParam.value || ''
+                    });
+                  }
+                });
+              }
+              
+              // Add path parameters (extract from path segments)
+              const pathParams = apiPath.match(/\{([^}]+)\}/g);
+              if (pathParams) {
+                methodSpec.parameters = methodSpec.parameters || [];
+                pathParams.forEach(param => {
+                  const paramName = param.replace(/[{}]/g, '');
+                  methodSpec.parameters.push({
+                    name: paramName,
+                    in: 'path',
+                    required: true,
+                    schema: {
+                      type: 'string'
                     }
+                  });
+                });
+              }
+              
+              // Also check for numeric path segments that might be IDs
+              const pathSegments = apiPath.split('/');
+              pathSegments.forEach((segment, index) => {
+                if (segment && !isNaN(segment) && segment !== '') {
+                  const paramName = `id${index > 0 ? index : ''}`;
+                  if (!methodSpec.parameters || !methodSpec.parameters.some(p => p.name === paramName)) {
+                    methodSpec.parameters = methodSpec.parameters || [];
+                    methodSpec.parameters.push({
+                      name: paramName,
+                      in: 'path',
+                      required: true,
+                      schema: {
+                        type: 'string'
+                      },
+                      description: `Path parameter at position ${index}`
+                    });
                   }
                 }
+              });
+              
+              // Add request body for POST/PUT/PATCH methods
+              if (['post', 'put', 'patch'].includes(method) && item.request.body) {
+                if (item.request.body.mode === 'raw' && item.request.body.raw) {
+                  try {
+                    const bodyContent = JSON.parse(item.request.body.raw);
+                    methodSpec.requestBody = {
+                      required: true,
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object',
+                            properties: Object.keys(bodyContent).reduce((props, key) => {
+                              props[key] = {
+                                type: typeof bodyContent[key] === 'number' ? 'number' : 'string',
+                                example: bodyContent[key]
+                              };
+                              return props;
+                            }, {})
+                          },
+                          example: bodyContent
+                        }
+                      }
+                    };
+                  } catch (parseError) {
+                    // If JSON parsing fails, create a generic schema
+                    methodSpec.requestBody = {
+                      required: true,
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object'
+                          },
+                          example: item.request.body.raw
+                        }
+                      }
+                    };
+                  }
+                } else if (item.request.body.mode === 'formdata' && item.request.body.formdata) {
+                  methodSpec.requestBody = {
+                    required: true,
+                    content: {
+                      'multipart/form-data': {
+                        schema: {
+                          type: 'object',
+                          properties: item.request.body.formdata.reduce((props, field) => {
+                            if (field.key && !field.disabled) {
+                                                           props[field.key] = {
+                               type: field.type === 'text' ? 'string' : 'string',
+                               example: field.value || ''
+                             };
+                            }
+                            return props;
+                          }, {})
+                        }
+                      }
+                    }
+                  };
+                }
               }
-            };
-          }
+              
+              // Add headers
+              if (item.request.header && Array.isArray(item.request.header)) {
+                methodSpec.parameters = methodSpec.parameters || [];
+                item.request.header.forEach(header => {
+                  if (header.key && header.value) {
+                    methodSpec.parameters.push({
+                      name: header.key,
+                      in: 'header',
+                      required: false,
+                      schema: {
+                        type: 'string'
+                      },
+                      example: header.value
+                    });
+                  }
+                });
+              }
+              
+              // Add authentication headers if present
+              if (item.request.auth) {
+                methodSpec.parameters = methodSpec.parameters || [];
+                if (item.request.auth.type === 'bearer') {
+                  methodSpec.parameters.push({
+                    name: 'Authorization',
+                    in: 'header',
+                    required: true,
+                    schema: {
+                      type: 'string'
+                    },
+                    description: 'Bearer token for authentication',
+                    example: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+                  });
+                } else if (item.request.auth.type === 'apikey') {
+                  methodSpec.parameters.push({
+                    name: item.request.auth.apikey?.key || 'X-API-Key',
+                    in: 'header',
+                    required: true,
+                    schema: {
+                      type: 'string'
+                    },
+                    description: 'API key for authentication'
+                  });
+                }
+              }
+             
+             // Add the method to the path
+             openapi.paths[apiPath][method] = methodSpec;
+           }
         }
       });
     }
