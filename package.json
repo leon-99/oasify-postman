@@ -1,6 +1,6 @@
 {
   "name": "oasify-postman",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Convert Postman collections to OpenAPI specifications with example responses",
   "main": "index.js",
   "bin": {
