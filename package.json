@@ -1,6 +1,6 @@
 {
   "name": "oasify-postman",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "Convert Postman collections to OpenAPI specifications with example responses",
   "main": "index.js",
   "bin": {
@@ -19,7 +19,7 @@
     "converter",
     "yaml"
   ],
-  "author": "Your Name",
+  "author": "Win Khant Aung",
   "license": "MIT",
   "dependencies": {
     "postman-to-openapi": "^2.7.0",
@@ -30,10 +30,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/oasify-postman.git"
+    "url": "git+https://github.com/leon-99/oasify-postman.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/oasify-postman/issues"
+    "url": "https://github.com/leon-99/oasify-postman/issues"
   },
-  "homepage": "https://github.com/yourusername/oasify-postman#readme"
+  "homepage": "https://github.com/leon-99/oasify-postman#readme"
 }

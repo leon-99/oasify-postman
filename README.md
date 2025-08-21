@@ -1,7 +1,8 @@
 # Oasify Postman
 
 <div align="center">
-![Oasify Postman](./cover.png)
+
+  ![Oasify Postman](./cover.png)
   
   [![npm version](https://badge.fury.io/js/oasify-postman.svg)](https://badge.fury.io/js/oasify-postman)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
