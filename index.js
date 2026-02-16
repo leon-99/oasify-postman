@@ -16,7 +16,7 @@ const fs = require('fs');
  */
 async function generateSwagger(inputFile, outputFile, options = {}) {
   try {
-    console.log('🔄 Converting Postman collection to OpenAPI...');
+    console.log('Converting Postman collection to OpenAPI...');
     
     // Set default options for postman-to-openapi library
     const postmanOptions = {
@@ -28,21 +28,21 @@ async function generateSwagger(inputFile, outputFile, options = {}) {
       await postmanToOpenApi(inputFile, outputFile, postmanOptions);
     } catch (conversionError) {
       // If the main conversion fails due to URL issues, create a basic OpenAPI spec
-      console.log('⚠️  Main conversion failed, creating basic OpenAPI spec...');
+      console.log('Main conversion failed, creating basic OpenAPI spec...');
       await createBasicOpenApiSpec(inputFile, outputFile, postmanOptions);
     }
     
-    console.log('✅ Successfully generated OpenAPI specification!');
-    console.log(`📁 Output file: ${outputFile}`);
+    console.log('Successfully generated OpenAPI specification!');
+    console.log(`Output file: ${outputFile}`);
     
     // Post-process the OpenAPI YAML to inject example responses and custom info
-    console.log('🔄 Post-processing OpenAPI to inject example responses and custom info...');
+    console.log('Post-processing OpenAPI to inject example responses and custom info...');
     await injectExampleResponses(inputFile, outputFile, options);
     
-    console.log('✅ Successfully enhanced OpenAPI with example responses and custom info!');
+    console.log('Successfully enhanced OpenAPI with example responses and custom info!');
     
   } catch (error) {
-    console.error('❌ Error generating OpenAPI specification:', error.message);
+    console.error('Error generating OpenAPI specification:', error.message);
     throw error;
   }
 }
@@ -75,9 +75,32 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
       if (options.info.version) {
         openapi.info.version = options.info.version;
       }
-      console.log(`  ✅ Applied custom API info: ${openapi.info.title} v${openapi.info.version}`);
+      console.log(`  Applied custom API info: ${openapi.info.title} v${openapi.info.version}`);
     }
-    
+
+    const collectionVars = {};
+    if (postman.variable && Array.isArray(postman.variable)) {
+      postman.variable.forEach(v => {
+        if (v.key != null) collectionVars[v.key.toLowerCase()] = v.value;
+      });
+    }
+    const baseUrl = collectionVars.baseurl || collectionVars.base_url || 'http://localhost:4000';
+    if (openapi.servers && openapi.servers.length > 0) {
+      let serverUrl = openapi.servers[0].url || '';
+      if (serverUrl.includes('{{') && serverUrl.includes('}}')) {
+        if (/^https?:\/\/\{\{\s*baseurl\s*\}\}\/?$/i.test(serverUrl.trim())) {
+          serverUrl = baseUrl.replace(/\/$/, '');
+        } else {
+          serverUrl = serverUrl.replace(/\{\{baseurl\}\}/gi, baseUrl.replace(/^https?:\/\//, '')).replace(/\{\{base_url\}\}/gi, baseUrl.replace(/^https?:\/\//, ''));
+          serverUrl = serverUrl.replace(/\{\{([^}]+)\}\}/g, (_, key) => collectionVars[key.toLowerCase()] ?? '');
+        }
+        if (serverUrl && !serverUrl.includes('{{')) {
+          openapi.servers[0].url = serverUrl;
+          console.log(`  Applied server URL from collection variables: ${serverUrl}`);
+        }
+      }
+    }
+
     let enhancedCount = 0;
     
     // Process each item in the Postman collection
@@ -132,7 +155,7 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
               }
             } else {
               // Skip this item if we can't determine the path
-              console.log(`  ⚠️  Could not determine path for ${item.name}`);
+              console.log(`  Could not determine path for ${item.name}`);
               return;
             }
             
@@ -172,9 +195,9 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
                   };
                   
                   enhancedCount++;
-                  console.log(`  ✅ Enhanced: ${method.toUpperCase()} ${apiPath}`);
+                  console.log(`  Enhanced: ${method.toUpperCase()} ${apiPath}`);
                 } catch (parseError) {
-                  console.log(`  ⚠️  Could not parse response body for ${method.toUpperCase()} ${apiPath}`);
+                  console.log(`  Could not parse response body for ${method.toUpperCase()} ${apiPath}`);
                 }
               }
             }
@@ -192,10 +215,10 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
     const yamlString = YAML.stringify(openapi, 2);
     fs.writeFileSync(openapiFile, yamlString);
     
-    console.log(`📊 Enhanced ${enhancedCount} API endpoints with example responses`);
+    console.log(`Enhanced ${enhancedCount} API endpoints with example responses`);
     
   } catch (error) {
-    console.error('❌ Error during post-processing:', error.message);
+    console.error('Error during post-processing:', error.message);
     throw error;
   }
 }
@@ -212,7 +235,14 @@ async function createBasicOpenApiSpec(postmanFile, outputFile, postmanOptions) {
     const postman = JSON.parse(fs.readFileSync(postmanFile, 'utf8'));
     const YAML = require('yamljs');
     
-    // Create basic OpenAPI structure
+    const collectionVars = {};
+    if (postman.variable && Array.isArray(postman.variable)) {
+      postman.variable.forEach(v => {
+        if (v.key != null) collectionVars[v.key.toLowerCase()] = v.value;
+      });
+    }
+    const serverBaseUrl = collectionVars.baseurl || collectionVars.base_url || 'http://localhost:3000';
+
     const openapi = {
       openapi: '3.0.0',
       info: {
@@ -222,13 +252,19 @@ async function createBasicOpenApiSpec(postmanFile, outputFile, postmanOptions) {
       },
       servers: [
         {
-          url: 'http://localhost:3000',
-          description: 'Local development server'
+          url: serverBaseUrl.replace(/\/$/, ''),
+          description: 'API server'
         }
       ],
       paths: {}
     };
-    
+
+    function pathFromStringUrl(str) {
+      let path = str.replace(/^\{\{baseurl\}\}\/?/gi, '').replace(/^\{\{base_url\}\}\/?/gi, '');
+      path = path.replace(/\{\{([^}]+)\}\}/g, '{$1}');
+      return path.startsWith('/') ? path : `/${path}`;
+    }
+
     // Process each item to extract paths
     function processItems(items, parentPath = '') {
       items.forEach(item => {
@@ -248,7 +284,15 @@ async function createBasicOpenApiSpec(postmanFile, outputFile, postmanOptions) {
               const urlObj = new URL(url);
               apiPath = urlObj.pathname;
             } catch (urlError) {
-              apiPath = url.startsWith('http') ? new URL(url).pathname : url;
+              if (url.startsWith('http')) {
+                try {
+                  apiPath = new URL(url).pathname;
+                } catch (_) {
+                  apiPath = pathFromStringUrl(url);
+                }
+              } else {
+                apiPath = pathFromStringUrl(url);
+              }
             }
           } else if (url.path) {
             const pathSegments = Array.isArray(url.path) ? url.path : [url.path];
@@ -477,10 +521,10 @@ async function createBasicOpenApiSpec(postmanFile, outputFile, postmanOptions) {
     const yamlString = YAML.stringify(openapi, 2);
     fs.writeFileSync(outputFile, yamlString);
     
-    console.log(`📊 Created basic OpenAPI spec with ${Object.keys(openapi.paths).length} paths`);
+    console.log(`Created basic OpenAPI spec with ${Object.keys(openapi.paths).length} paths`);
     
   } catch (error) {
-    console.error('❌ Error creating basic OpenAPI spec:', error.message);
+    console.error('Error creating basic OpenAPI spec:', error.message);
     throw error;
   }
 }

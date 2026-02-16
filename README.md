@@ -12,27 +12,27 @@
 
 **Convert Postman collections to OpenAPI specifications with example responses automatically injected.**
 
-## ✨ Features
+## Features
 
-- 🔄 **Convert Postman collections** to OpenAPI 3.0 specifications
-- 📝 **Automatic example injection** from saved Postman responses
-- 🎯 **Customizable API metadata** (title, description, version, tags)
-- 📁 **YAML output** for easy integration with documentation tools
-- 🖥️ **Command-line interface** for quick conversions
-- 📚 **Programmatic API** for integration into build processes
+- **Convert Postman collections** to OpenAPI 3.0 specifications
+- **Automatic example injection** from saved Postman responses
+- **Customizable API metadata** (title, description, version, tags)
+- **YAML output** for easy integration with documentation tools
+- **Command-line interface** for quick conversions
+- **Programmatic API** for integration into build processes
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Installation](#-installation)
-- [Quick Start](#-quick-start)
-- [CLI Options](#-cli-options)
-- [API Reference](#-api-reference)
-- [Requirements](#-requirements)
-- [Example Output](#-example-output)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [CLI Options](#cli-options)
+- [API Reference](#api-reference)
+- [Requirements](#requirements)
+- [Example Output](#example-output)
+- [Contributing](#contributing)
+- [License](#license)
 
-## 📦 Installation
+## Installation
 
 ### Local Installation (Library) - **Recommended**
 ```bash
@@ -44,7 +44,7 @@ npm install oasify-postman
 npm install -g oasify-postman
 ```
 
-## 🎯 Demo
+## Demo
 
 <div align="center">
   <strong>Transform your Postman collections into professional OpenAPI documentation in seconds!</strong>
@@ -53,7 +53,7 @@ npm install -g oasify-postman
 **Before (Postman Collection):** Raw JSON with saved responses
 **After (OpenAPI Spec):** Beautiful, interactive API documentation with examples
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Programmatic Usage - **Recommended**
 
@@ -70,9 +70,9 @@ async function convertCollection() {
         version: '1.0.0'
       }
     });
-    console.log('✅ Conversion completed successfully!');
+    console.log('Conversion completed successfully!');
   } catch (error) {
-    console.error('❌ Conversion failed:', error.message);
+    console.error('Conversion failed:', error.message);
   }
 }
 
@@ -100,7 +100,7 @@ curl -o example.json https://raw.githubusercontent.com/your-repo/example-collect
 oasify-postman example.json api-docs.yaml
 ```
 
-## 📖 CLI Options
+## CLI Options
 
 | Option | Short | Description | Default |
 |--------|-------|-------------|---------|
@@ -123,7 +123,7 @@ oasify-postman -t "User Management API" -d "Complete user management system" -v 
 oasify-postman -g "Users" -t "User API" users.json users.yaml
 ```
 
-## 🔧 API Reference
+## API Reference
 
 ### `generateSwagger(inputFile, outputFile, options)`
 
@@ -180,35 +180,35 @@ await injectExampleResponses('collection.json', 'api.yaml');
 
 
 
-## 📋 Requirements
+## Requirements
 
 - **Node.js** 14.0.0 or higher
 - **Postman collection** with saved responses (for example injection)
 - **Proper URL format** in collection (e.g., `"https://api.example.com/endpoint"`)
 
-## ⚠️ Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
-**❌ "Invalid URL format" error**
+**"Invalid URL format" error**
 - Ensure your Postman collection has proper URL format
 - URLs should be complete (e.g., `https://api.example.com/users` not just `/users`)
 
-**❌ "No examples found" warning**
+**"No examples found" warning**
 - Make sure your Postman collection has saved responses
 - Export collection with "Save responses" option enabled
 
-**❌ "Permission denied" error**
+**"Permission denied" error**
 - Check file permissions for input/output files
 - Ensure you have write access to the output directory
 
 ### Getting Help
 
-- 📖 Check the [example collection](example-collection.json) for reference
-- 🐛 Report issues on GitHub
-- 💬 Ask questions in discussions
+- Check the [example collection](example-collection.json) for reference
+- Report issues on GitHub
+- Ask questions in discussions
 
-## 📝 Example Output
+## Example Output
 
 ### Before vs After
 
@@ -247,13 +247,13 @@ paths:
                     email: "john@example.com"
 ```
 
-**💡 Pro Tip:** Your Postman collection should have proper URL format (e.g., `"https://api.example.com/endpoint"`) for the converter to work correctly.
+**Pro Tip:** Your Postman collection should have proper URL format (e.g., `"https://api.example.com/endpoint"`) for the converter to work correctly.
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Here's how you can help:
 
-### 🚀 Quick Start
+### Quick Start
 
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
@@ -261,21 +261,21 @@ We welcome contributions! Here's how you can help:
 4. **Push** to the branch (`git push origin feature/amazing-feature`)
 5. **Open** a Pull Request
 
-### 🎯 Areas to Contribute
+### Areas to Contribute
 
-- 🐛 Bug fixes
-- ✨ New features
-- 📚 Documentation improvements
-- 🧪 Test coverage
-- 🔧 Performance optimizations
+- Bug fixes
+- New features
+- Documentation improvements
+- Test coverage
+- Performance optimizations
 
 
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built on top of [postman-to-openapi](https://github.com/joolfe/postman-to-openapi)
 - Uses [yamljs](https://github.com/jeremyfa/yaml-js) for YAML processing

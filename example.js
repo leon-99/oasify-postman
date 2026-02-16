@@ -4,7 +4,7 @@ const path = require('path');
 // Example usage of oasify-postman
 async function example() {
   try {
-    console.log('🚀 Example: Converting Postman collection to OpenAPI...\n');
+    console.log('Example: Converting Postman collection to OpenAPI...\n');
     
     // Example with custom options
     await generateSwagger(
@@ -20,11 +20,11 @@ async function example() {
       }
     );
     
-    console.log('\n✅ Example completed successfully!');
-    console.log('📁 Check the output/swagger.yaml file');
+    console.log('\nExample completed successfully!');
+    console.log('Check the output/swagger.yaml file');
     
   } catch (error) {
-    console.error('❌ Example failed:', error.message);
+    console.error('Example failed:', error.message);
   }
 }
 

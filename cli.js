@@ -9,7 +9,7 @@ const args = process.argv.slice(2);
 
 function showHelp() {
   console.log(`
-🚀 Postman to OpenAPI Converter
+Postman to OpenAPI Converter
 
 Usage: postman-to-openapi [options] <input-file> <output-file>
 
@@ -72,7 +72,7 @@ function parseArgs(args) {
         } else if (!outputFile) {
           outputFile = arg;
         } else {
-          console.error(`❌ Unexpected argument: ${arg}`);
+          console.error(`Unexpected argument: ${arg}`);
           showHelp();
           process.exit(1);
         }
@@ -88,14 +88,14 @@ async function main() {
 
     // Validate arguments
     if (!inputFile || !outputFile) {
-      console.error('❌ Input and output files are required');
+      console.error('Input and output files are required');
       showHelp();
       process.exit(1);
     }
 
     // Check if input file exists
     if (!fs.existsSync(inputFile)) {
-      console.error(`❌ Input file not found: ${inputFile}`);
+      console.error(`Input file not found: ${inputFile}`);
       process.exit(1);
     }
 
@@ -115,10 +115,10 @@ async function main() {
       }
     });
 
-    console.log('\n🎉 Conversion completed successfully!');
+    console.log('\nConversion completed successfully!');
     
   } catch (error) {
-    console.error(`❌ Error: ${error.message}`);
+    console.error(`Error: ${error.message}`);
     process.exit(1);
   }
 }
