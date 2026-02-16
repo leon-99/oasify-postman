@@ -3,6 +3,10 @@
 .gitignore
 .github/
 
+# Generated / example output (do not publish)
+out.yaml
+output/
+
 # Development files
 *.log
 npm-debug.log*
