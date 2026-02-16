@@ -2,6 +2,27 @@ const postmanToOpenApi = require('postman-to-openapi');
 const path = require('path');
 const fs = require('fs');
 
+function readJsonFile(filePath) {
+  const buf = fs.readFileSync(filePath);
+  const bomUtf8 = Buffer.from([0xEF, 0xBB, 0xBF]);
+  const bomUtf16Le = Buffer.from([0xFF, 0xFE]);
+  const bomUtf16Be = Buffer.from([0xFE, 0xFF]);
+  let content;
+  if (buf.length >= 3 && buf.slice(0, 3).equals(bomUtf8)) {
+    content = buf.slice(3).toString('utf8');
+  } else if (buf.length >= 2 && buf.slice(0, 2).equals(bomUtf16Le)) {
+    content = buf.slice(2).toString('utf16le');
+  } else if (buf.length >= 2 && buf.slice(0, 2).equals(bomUtf16Be)) {
+    content = buf.slice(2).toString('utf16be');
+  } else {
+    content = buf.toString('utf8');
+    if (content.length > 0 && content.charCodeAt(0) === 0xFEFF) {
+      content = content.slice(1);
+    }
+  }
+  return JSON.parse(content);
+}
+
 /**
  * Convert Postman collection to OpenAPI specification
  * @param {string} inputFile - Path to Postman collection JSON file
@@ -57,7 +78,7 @@ async function generateSwagger(inputFile, outputFile, options = {}) {
 async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
   try {
     // Load both files
-    const postman = JSON.parse(fs.readFileSync(postmanFile, 'utf8'));
+    const postman = readJsonFile(postmanFile);
     const openapiContent = fs.readFileSync(openapiFile, 'utf8');
     
     // Parse YAML content
@@ -232,7 +253,7 @@ async function injectExampleResponses(postmanFile, openapiFile, options = {}) {
  */
 async function createBasicOpenApiSpec(postmanFile, outputFile, postmanOptions) {
   try {
-    const postman = JSON.parse(fs.readFileSync(postmanFile, 'utf8'));
+    const postman = readJsonFile(postmanFile);
     const YAML = require('yamljs');
     
     const collectionVars = {};
